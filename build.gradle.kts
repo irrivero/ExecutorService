@@ -18,6 +18,8 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
     implementation("ch.qos.logback:logback-classic:1.4.11")
     testImplementation(kotlin("test"))
+    testImplementation("io.ktor:ktor-server-test-host:2.3.7")
+    testImplementation("io.ktor:ktor-client-content-negotiation:2.3.7")
 }
 
 application {
