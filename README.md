@@ -19,11 +19,18 @@ A simple service to execute shell commands on a remote Docker executor, built wi
 ./gradlew run
 ```
 
+## Run tests
+```bash
+./gradlew test
+```
+
 ## API
 
 ### Execute a command
 ```
 POST /execute
+Content-Type: application/json
+
 {
   "command": "echo hello",
   "cpuCount": 1,
@@ -31,9 +38,24 @@ POST /execute
 }
 ```
 
+Response:
+```json
+{"executionId": "67e689ec-4617-47bd-b1e9-a8a0d6df5272"}
+```
+
 ### Get execution status
 ```
 GET /status/{executionId}
+```
+
+Response:
+```json
+{
+  "executionId": "67e689ec-4617-47bd-b1e9-a8a0d6df5272",
+  "status": "FINISHED",
+  "output": "hello\n",
+  "error": null
+}
 ```
 
 ## Flow
@@ -49,34 +71,45 @@ flowchart TD
     G --> H[Status: IN_PROGRESS]
     H --> I[Command finishes]
     I --> J[Collect output]
-    J --> K[Stop container]
+    J --> K[Stop and remove container]
     K --> L[Status: FINISHED]
     L --> M[User polls GET /status/:id]
 ```
+
+## Design Decisions
+
+**Docker as executor** — each command runs in an isolated Alpine container. This guarantees clean environments and easy resource limiting via Docker flags.
+
+**ConcurrentHashMap for storage** — thread-safe in-memory store for execution state. Simple and sufficient for this use case.
+
+**Coroutines for async execution** — the service returns the executionId immediately and runs the Docker lifecycle in the background using Kotlin coroutines.
+
+**One container per execution** — each command gets its own container, started fresh and removed after completion. No shared state between executions.
 
 ## TODO
 
 ### Setup
 - [x] Project structure with Kotlin + Ktor + Gradle
-- [ ] Docker integration
+- [x] Docker integration
 
 ### API
-- [ ] POST /execute endpoint
-- [ ] GET /status/:id endpoint
+- [x] POST /execute endpoint
+- [x] GET /status/:id endpoint
 
 ### Execution
-- [ ] Start Docker container
-- [ ] Wait for container to be ready
-- [ ] Execute command in container
-- [ ] Collect output
-- [ ] Update status
-- [ ] Stop container
+- [x] Start Docker container
+- [x] Wait for container to be ready
+- [x] Execute command in container
+- [x] Collect output
+- [x] Update status
+- [x] Stop and remove container
 
 ### Error handling
-- [ ] Handle container start failure
-- [ ] Handle command execution failure
+- [x] Handle container start failure
+- [x] Handle command execution failure
 - [ ] Handle timeout
 
 ### Tests
-- [ ] Unit tests for ExecutionService
-- [ ] Integration tests for API endpoints
+- [x] Unit tests for ExecutionService
+- [x] Integration tests for API endpoints
+- [x] Docker executor tests
