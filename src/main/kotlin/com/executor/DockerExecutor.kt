@@ -24,7 +24,7 @@ class DockerExecutor : DockerExecutorInterface {
         return containerId
     }
 
-    suspend fun waitForContainer(containerId: String) {
+    override suspend fun waitForContainer(containerId: String) {
         repeat(10) {
             val process = ProcessBuilder("docker", "inspect", "-f", "{{.State.Running}}", containerId)
                 .redirectErrorStream(true)
@@ -37,7 +37,7 @@ class DockerExecutor : DockerExecutorInterface {
         throw RuntimeException("Container $containerId did not start in time")
     }
 
-    suspend fun executeCommand(containerId: String, command: String): Pair<String, String> {
+    override suspend fun executeCommand(containerId: String, command: String): Pair<String, String> {
         val process = ProcessBuilder(
             "docker", "exec", containerId,
             "sh", "-c", command
@@ -58,7 +58,7 @@ class DockerExecutor : DockerExecutorInterface {
         }
     }
 
-    fun stopContainer(containerId: String) {
+    override fun stopContainer(containerId: String) {
         ProcessBuilder("docker", "stop", containerId)
             .start()
             .waitFor()
