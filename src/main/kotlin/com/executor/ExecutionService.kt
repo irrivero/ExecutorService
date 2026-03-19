@@ -25,7 +25,7 @@ class ExecutionService(private val timeoutMs: Long = 60_000) {
     private suspend fun run(execution: Execution) {
         var containerId: String? = null
         try {
-            withTimeout(60_000) {
+            withTimeout(timeoutMs) {
                 containerId = docker.startContainer(
                     execution.request.cpuCount,
                     execution.request.memoryMb
