@@ -8,9 +8,11 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
 
 
-class ExecutionService(private val timeoutMs: Long = 60_000) {
+class ExecutionService(
+    private val timeoutMs: Long = 60_000,
+    private val docker: DockerExecutorInterface = DockerExecutor()
+) {
     private val executions = ConcurrentHashMap<String, Execution>()
-    private val docker = DockerExecutor()
     private val scope = CoroutineScope(Dispatchers.IO)
 
     fun submit(request: ExecuteRequest): String {
