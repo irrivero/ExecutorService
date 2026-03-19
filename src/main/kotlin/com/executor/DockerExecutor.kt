@@ -5,8 +5,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 
-class DockerExecutor {
-
+class DockerExecutor : DockerExecutorInterface {
     suspend fun startContainer(cpuCount: Int, memoryMb: Int): String {
         val process = ProcessBuilder(
             "docker", "run", "-d",
