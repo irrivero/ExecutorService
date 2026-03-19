@@ -107,7 +107,7 @@ flowchart TD
 ### Error handling
 - [x] Handle container start failure
 - [x] Handle command execution failure
-- [ ] Handle timeout
+- [x] Handle timeout
 
 ### Tests
 - [x] Unit tests for ExecutionService
