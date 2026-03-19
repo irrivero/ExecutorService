@@ -10,6 +10,9 @@ fun Application.configureRoutes(service: ExecutionService) {
     routing {
         post("/execute") {
             val request = call.receive<ExecuteRequest>()
+            if (request.command.isBlank()) {
+                return@post call.respond(HttpStatusCode.BadRequest, "Command cannot be empty")
+            }
             val executionId = service.submit(request)
             call.respond(HttpStatusCode.Accepted, ExecuteResponse(executionId))
         }

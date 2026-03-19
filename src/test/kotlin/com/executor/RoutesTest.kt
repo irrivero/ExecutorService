@@ -28,6 +28,15 @@ class RoutesTest {
     }
 
     @Test
+    fun `POST execute returns 400 for empty command`() = testApp {
+        val response = client.post("/execute") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"command": "", "cpuCount": 1, "memoryMb": 512}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
     fun `GET status returns 404 for unknown id`() = testApp {
         val response = client.get("/status/unknown-id")
         assertEquals(HttpStatusCode.NotFound, response.status)
