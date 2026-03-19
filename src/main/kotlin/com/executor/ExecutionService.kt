@@ -7,7 +7,8 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
 
-class ExecutionService {
+
+class ExecutionService(private val timeoutMs: Long = 60_000) {
     private val executions = ConcurrentHashMap<String, Execution>()
     private val docker = DockerExecutor()
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -38,7 +39,7 @@ class ExecutionService {
             }
         } catch (e: TimeoutCancellationException) {
             execution.status = ExecutionStatus.FAILED
-            execution.error = "Execution timed out after 60 seconds"
+            execution.error = "Execution timed out after ${timeoutMs / 1000} seconds"
         } catch (e: Exception) {
             execution.status = ExecutionStatus.FAILED
             execution.error = e.message
