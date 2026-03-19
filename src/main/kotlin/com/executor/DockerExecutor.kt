@@ -50,7 +50,10 @@ class DockerExecutor {
     }
 
     fun stopContainer(containerId: String) {
-        ProcessBuilder("docker", "rm", "-f", containerId)
+        ProcessBuilder("docker", "stop", containerId)
+            .start()
+            .waitFor()
+        ProcessBuilder("docker", "rm", containerId)
             .start()
             .waitFor()
     }
