@@ -1,6 +1,9 @@
 package com.executor
 
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 
 class DockerExecutor {
 
@@ -43,10 +46,17 @@ class DockerExecutor {
             .redirectErrorStream(false)
             .start()
 
-        val output = process.inputStream.bufferedReader().readText()
-        val error = process.errorStream.bufferedReader().readText()
-        process.waitFor()
-        return Pair(output, error)
+        return try {
+            withContext(Dispatchers.IO) {
+                val output = process.inputStream.bufferedReader().readText()
+                val error = process.errorStream.bufferedReader().readText()
+                process.waitFor()
+                Pair(output, error)
+            }
+        } catch (e: CancellationException) {
+            process.destroy()
+            throw e
+        }
     }
 
     fun stopContainer(containerId: String) {

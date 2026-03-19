@@ -24,21 +24,18 @@ class ExecutionService {
     private suspend fun run(execution: Execution) {
         var containerId: String? = null
         try {
-            withTimeout(60_000) { // 60 segundos
+            withTimeout(60_000) {
                 containerId = docker.startContainer(
                     execution.request.cpuCount,
                     execution.request.memoryMb
                 )
                 docker.waitForContainer(containerId!!)
-
                 execution.status = ExecutionStatus.IN_PROGRESS
-
                 val (output, error) = docker.executeCommand(containerId!!, execution.request.command)
                 execution.output = output
                 execution.error = error.ifEmpty { null }
-                execution.status = ExecutionStatus.FAILED
+                execution.status = ExecutionStatus.FINISHED
             }
-            execution.status = ExecutionStatus.FINISHED
         } catch (e: TimeoutCancellationException) {
             execution.status = ExecutionStatus.FAILED
             execution.error = "Execution timed out after 60 seconds"
