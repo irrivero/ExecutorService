@@ -4,6 +4,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
 
 class ExecutionService {
     private val executions = ConcurrentHashMap<String, Execution>()
@@ -22,19 +24,24 @@ class ExecutionService {
     private suspend fun run(execution: Execution) {
         var containerId: String? = null
         try {
-            containerId = docker.startContainer(
-                execution.request.cpuCount,
-                execution.request.memoryMb
-            )
-            docker.waitForContainer(containerId)
+            withTimeout(60_000) { // 60 segundos
+                containerId = docker.startContainer(
+                    execution.request.cpuCount,
+                    execution.request.memoryMb
+                )
+                docker.waitForContainer(containerId!!)
 
-            execution.status = ExecutionStatus.IN_PROGRESS
+                execution.status = ExecutionStatus.IN_PROGRESS
 
-            val (output, error) = docker.executeCommand(containerId, execution.request.command)
-            execution.output = output
-            execution.error = error.ifEmpty { null }
+                val (output, error) = docker.executeCommand(containerId!!, execution.request.command)
+                execution.output = output
+                execution.error = error.ifEmpty { null }
+                execution.status = ExecutionStatus.FAILED
+            }
             execution.status = ExecutionStatus.FINISHED
-
+        } catch (e: TimeoutCancellationException) {
+            execution.status = ExecutionStatus.FAILED
+            execution.error = "Execution timed out after 60 seconds"
         } catch (e: Exception) {
             execution.status = ExecutionStatus.FAILED
             execution.error = e.message
