@@ -6,7 +6,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 
 class DockerExecutor : DockerExecutorInterface {
-    suspend fun startContainer(cpuCount: Int, memoryMb: Int): String {
+    override suspend fun startContainer(cpuCount: Int, memoryMb: Int): String {
         val process = ProcessBuilder(
             "docker", "run", "-d",
             "--cpus", cpuCount.toString(),
