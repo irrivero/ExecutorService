@@ -2,7 +2,10 @@ package com.executor
 
 import kotlinx.coroutines.runBlocking
 import kotlin.test.*
+import org.junit.jupiter.api.Tag
 
+
+@Tag("docker")
 class DockerExecutorTest {
 
     private val docker = DockerExecutor()

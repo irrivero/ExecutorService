@@ -29,3 +29,11 @@ application {
 kotlin {
     jvmToolchain(23)
 }
+
+tasks.test {
+    useJUnitPlatform {
+        if (System.getenv("CI") == "true") {
+            excludeTags("docker")
+        }
+    }
+}
