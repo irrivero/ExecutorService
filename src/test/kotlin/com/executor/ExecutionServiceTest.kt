@@ -47,4 +47,25 @@ class ExecutionServiceTest {
         assertEquals(ExecutionStatus.FAILED, execution?.status)
         assertEquals("Execution timed out after 2 seconds", execution?.error)
     }
+
+    @Test
+    fun `only maxConcurrent executions run at the same time`() {
+        val slowDocker = object : DockerExecutorInterface {
+            override suspend fun startContainer(cpuCount: Int, memoryMb: Int) = "fake-container"
+            override suspend fun waitForContainer(containerId: String) {}
+            override suspend fun executeCommand(containerId: String, command: String): Pair<String, String> {
+                Thread.sleep(3000)
+                return Pair("", "")
+            }
+            override fun stopContainer(containerId: String) {}
+        }
+        val service = ExecutionService(maxConcurrent = 2, docker = slowDocker)
+        val ids = (1..4).map { service.submit(ExecuteRequest(command = "sleep 3")) }
+        Thread.sleep(500)
+        val statuses = ids.map { service.getStatus(it)?.status }
+        val inProgress = statuses.count { it == ExecutionStatus.IN_PROGRESS }
+        val queued = statuses.count { it == ExecutionStatus.QUEUED }
+        assertEquals(2, inProgress)
+        assertEquals(2, queued)
+    }
 }
