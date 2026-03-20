@@ -63,17 +63,19 @@ Response:
 flowchart TD
     A[User sends POST /execute] --> B[Service creates executionId]
     B --> C[Returns executionId with status QUEUED]
-    C --> D[Background: start Docker container]
-    D --> E{Container ready?}
-    E -->|No| F[Wait and retry]
-    F --> E
-    E -->|Yes| G[Execute command in container]
-    G --> H[Status: IN_PROGRESS]
-    H --> I[Command finishes]
-    I --> J[Collect output]
-    J --> K[Stop and remove container]
-    K --> L[Status: FINISHED]
-    L --> M[User polls GET /status/:id]
+    C --> D{Slot available?}
+    D -->|No| D
+    D -->|Yes| E[Start Docker container]
+    E --> F{Container ready?}
+    F -->|No| G[Wait and retry]
+    G --> F
+    F -->|Yes| H[Execute command]
+    H --> I[Status: IN_PROGRESS]
+    I --> J{Timeout?}
+    J -->|Yes| K[Status: FAILED]
+    J -->|No| L[Collect output]
+    L --> M[Stop container]
+    M --> N[Status: FINISHED]
 ```
 
 ## Design Decisions
@@ -85,6 +87,13 @@ flowchart TD
 **Coroutines for async execution** — the service returns the executionId immediately and runs the Docker lifecycle in the background using Kotlin coroutines.
 
 **One container per execution** — each command gets its own container, started fresh and removed after completion. No shared state between executions.
+
+**Execution queue with semaphore** — a configurable concurrency limit (default 3) controls how many containers run simultaneously. Submissions beyond this limit stay QUEUED until a slot is available.
+
+**Timeout handling** — each execution has a configurable timeout (default 60 seconds). If exceeded, the Docker process is killed and the status is set to FAILED.
+
+**DockerExecutorInterface** — Docker is abstracted behind an interface, making it easy to mock in tests without needing a real Docker daemon.
+
 
 ## TODO
 
