@@ -6,13 +6,16 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withContext
 
 
 class ExecutionService(
     private val timeoutMs: Long = 60_000,
+    private val maxConcurrent: Int = 3,
     private val docker: DockerExecutorInterface = DockerExecutor()
 ) {
     private val executions = ConcurrentHashMap<String, Execution>()
+    private val semaphore = java.util.concurrent.Semaphore(maxConcurrent)
     private val scope = CoroutineScope(Dispatchers.IO)
 
     fun submit(request: ExecuteRequest): String {
@@ -27,17 +30,22 @@ class ExecutionService(
     private suspend fun run(execution: Execution) {
         var containerId: String? = null
         try {
-            withTimeout(timeoutMs) {
-                containerId = docker.startContainer(
-                    execution.request.cpuCount,
-                    execution.request.memoryMb
-                )
-                docker.waitForContainer(containerId!!)
-                execution.status = ExecutionStatus.IN_PROGRESS
-                val (output, error) = docker.executeCommand(containerId!!, execution.request.command)
-                execution.output = output
-                execution.error = error.ifEmpty { null }
-                execution.status = ExecutionStatus.FINISHED
+            withContext(Dispatchers.IO) { semaphore.acquire() }
+            try {
+                withTimeout(timeoutMs) {
+                    containerId = docker.startContainer(
+                        execution.request.cpuCount,
+                        execution.request.memoryMb
+                    )
+                    docker.waitForContainer(containerId!!)
+                    execution.status = ExecutionStatus.IN_PROGRESS
+                    val (output, error) = docker.executeCommand(containerId!!, execution.request.command)
+                    execution.output = output
+                    execution.error = error.ifEmpty { null }
+                    execution.status = ExecutionStatus.FINISHED
+                }
+            } finally {
+                semaphore.release()
             }
         } catch (e: TimeoutCancellationException) {
             execution.status = ExecutionStatus.FAILED
